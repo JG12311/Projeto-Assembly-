@@ -24,7 +24,7 @@
 
     ; === MENSAGENS DE ERRO E FIM DE JOGO ===
     MSG_INVALIDA    DB 0Dh, 0Ah, 'Jogada invalida! Tente novamente.', 0Dh, 0Ah, '$'
-    MSG_OCUPADA     DB 0Dh, 0Ah, 'Posicao ja ocupada!', 0Dh, 0Ah, '$'
+    MSG_OCUPADA     DB 0Dh, 0Ah, 'Posicao ja ocupada! Tente novamente.', 0Dh, 0Ah, '$'
     MSG_VITORIA_X   DB 0Dh, 0Ah, 'JOGADOR X VENCEU!', 0Dh, 0Ah, '$'
     MSG_VITORIA_O   DB 0Dh, 0Ah, 'JOGADOR O VENCEU!', 0Dh, 0Ah, '$'
     MSG_EMPATE      DB 0Dh, 0Ah, 'EMPATE!', 0Dh, 0Ah, '$'
@@ -40,10 +40,10 @@
     ; Constantes para dimensões
     NUM_COLUNAS EQU 3
 
-    ;Matriz exemplo
-    matriz_exemplo db '1','2','3'
-                   db '4','5','6'
-                   db '7','8','9'
+    ;Matriz exemplo com os números em ASCII
+    MATRIZ         DB '1','2','3'  ; Primeira linha
+                   DB '4','5','6'  ; Segunda linha
+                   DB '7','8','9'  ; Terceira linha
     
 .CODE
 ; MAIN - Programa Principal
@@ -96,43 +96,63 @@ LEITURA2JOG PROC
 ;entrada: nenhuma
 ;saida: matriz 3x3 
 ;o que faz: lê uma matriz de 3x3 
+    PUSH DI
     PUSH AX
     PUSH BX
     PUSH CX
     PUSH DX
     PUSH SI
 
-    MOV CX,9; vezes totais so como teste jão
+    ; Inicializa o tabuleiro com espaços
+    MOV CX,3            ; Contador de linhas
+    XOR BX,BX           ; Zera índice da linha
+INIT_LINHA:
+    PUSH CX             ; Salva contador de linhas
+    MOV CX,3           ; Contador de colunas
+    XOR SI,SI          ; Zera índice da coluna
+INIT_COLUNA:
+    MOV TABULEIRO[BX][SI],' '
+    INC SI
+    LOOP INIT_COLUNA   ; Decrementa CX e continua se não for zero
+    
+    ADD BX,3           ; Próxima linha
+    POP CX             ; Recupera contador de linhas
+    LOOP INIT_LINHA    ; Decrementa CX e continua se não for zero
 
-    XOR BX,BX;zera ax
+    ; Imprime tabuleiro inicial
+    CALL IMPRIMIRTABULEIRO
+
+    MOV CX,9    ; Total de jogadas possíveis
+    XOR DI,DI   ; Contador de turnos começando com 0
 
 TURNOS:
-    INC BX  
-    TEST BX, 1      ; Testa o último bit de AX
-    JZ PAR       ; PULA SE FOR ZERO (se ZF=1). Ou seja, se for PAR.
+    INC DI  
+    TEST DI,1       ; Testa o último bit de DI
+    JZ PAR         ; Se for par, vez do O
 
     IMPAR:
     LEA DX,MSGVEZ_X
     MOV AH,09 
-    INT 21h;PRINTA MSGVEZ_X
+    INT 21h
     JMP FIM_TESTE
-
     
     PAR:
     LEA DX,MSGVEZ_O
     MOV AH,09 
-    INT 21h;PRINTA MSGVEZ_O
+    INT 21h
 
     FIM_TESTE:
-    CALL POSICAO;chama o procedimento posicao
+    CALL POSICAO
+    CALL IMPRIMIRTABULEIRO    ; Mostra tabuleiro após cada jogada
 
-    loop TURNOS
+    LOOP TURNOS
 
     POP SI
     POP DX
     POP CX
     POP BX
     POP AX
+    POP DI
     RET
 LEITURA2JOG ENDP
 
@@ -142,45 +162,84 @@ POSICAO PROC
     PUSH CX
     PUSH DX
     PUSH SI
-    
+
+INICIO_PREENCHER: 
     LEA DX,MSG_JOGADA
     MOV AH,09
-    INT 21h;printa MSG_JOGADA
+    INT 21h         ; printa MSG_JOGADA
 
     MOV AH,01H
-    INT 21H;Lê o caracter e coloca em al
-    CMP AL,'1'
-    JE OCUPADA
-    CMP AL,'2'
-    JE OCUPADA
-    CMP AL,'3'
-    JE OCUPADA
-    CMP AL,'4'
-    JE OCUPADA
-    CMP AL,'5'
-    JE OCUPADA
-    CMP AL,'6'
-    JE OCUPADA
-    CMP AL,'7'
-    JE OCUPADA
-    CMP AL,'8'
-    JE OCUPADA
-    CMP AL,'9'
-    JE OCUPADA
-
-    OCUPADA:
-    LEA DX,MSG_OCUPADA
-    MOV AH,09
-    INT 21
-
+    INT 21H         ; Lê o caracter e coloca em al
+   
     
+    XOR BX,BX       ; Zera BX (índice da linha)
+    XOR SI,SI       ; Zera SI (índice da coluna)
+    
+    ; Encontra a posição correta na matriz
+PROCURA_POSICAO:
+    CMP AL,MATRIZ[BX][SI]  ; Compara com o número na matriz (já em ASCII)
+    JE POSICAO_ENCONTRADA  ; Se encontrou, processa a posição
+    
+    INC SI                 ; Próxima coluna
+    CMP SI,3              ; Chegou ao fim da linha?
+    JNE PROCURA_POSICAO
+    
+    XOR SI,SI             ; Volta para primeira coluna
+    ADD BX,3              ; Próxima linha
+    CMP BX,9              ; Chegou ao fim da matriz?
+    JNE PROCURA_POSICAO
+    LEA DX,MSG_INVALIDA   ; Se não encontrou, posição inválida
+    MOV AH,09h
+    INT 21h
+    JMP INICIO_PREENCHER
+
+POSICAO_ENCONTRADA:
+    ; Verifica se posição está ocupada
+    CMP TABULEIRO[BX][SI],' '  ; Verifica se está vazio
+    JNE OCUPADA               ; Se não estiver vazio, está ocupada
+    
+    ; Verifica vez do jogador
+    TEST DI,1             ; Testa se é vez do X ou O
+    JZ PAR_PREENCHER
+    
+    ; Vez do X
+    MOV TABULEIRO[BX][SI],'X'
+    JMP ATUALIZA_TELA
+    
+PAR_PREENCHER:
+    ; Vez do O
+    MOV TABULEIRO[BX][SI],'O'
+    
+ATUALIZA_TELA:
+    JMP FIM_PREENCHER
+
+OCUPADA:
+    LEA DX,MSG_OCUPADA
+    MOV AH,09h
+    INT 21h 
+    JMP INICIO_PREENCHER
+CALL VITORIA
+
+FIM_PREENCHER:
+    CALL IMPRIMIRTABULEIRO
     POP SI
     POP DX
     POP CX
     POP BX
     POP AX
+    
     RET
 POSICAO ENDP 
+
+VITORIA PROC
+PUSH AX
+PUSH BX
+PUSH CX 
+PUSH DX 
+PUSH SI 
+
+PUSH
+VITORIA ENDP 
 
 IMPRIMIRMATRIZ PROC  
 ;entrada: matriz definid em data
@@ -224,7 +283,7 @@ PRINT_LINHA:
     ; === Imprime a linha no formato: [char] | [char] | [char] ===
     
     ; Primeiro caractere da linha
-    MOV DL, matriz_exemplo [BX][SI]     ; Lê usando [BX][SI]
+    MOV DL, matriz [BX][SI]     ; Lê usando [BX][SI]
     MOV AH, 02h
     INT 21h        
     
@@ -260,8 +319,6 @@ PRINT_LINHA:
     JNZ PRINT_COLUNA
     
 FIM_PRINT_LOOP:
-       
-    
     POP SI
     POP DX
     POP CX
@@ -270,5 +327,90 @@ FIM_PRINT_LOOP:
     RET
 IMPRIMIRMATRIZ ENDP
 
+IMPRIMIRTABULEIRO PROC  
+;entrada: matriz definid em data
+;saida: impressão da matriz 3x3
+;o que faz: imprime uma matriz 3x3
 
+    PUSH AX
+    PUSH BX
+    PUSH CX
+    PUSH DX
+    PUSH SI
+
+    ; Imprime nova linha
+    LEA DX, NOVA_LINHA
+    MOV AH, 09h
+    INT 21h
+
+    ; Mostra o título "TABULEIRO:"
+    LEA DX, MSG4
+    MOV AH, 09h
+    INT 21h
+
+    XOR BX,BX;Indice de linha
+
+    XOR CX,CX
+    MOV CH,3; contador de COLUNAS
+PRINTT_COLUNA:
+   ;Imprime ' '
+    MOV DL,' '
+    MOV AH,02h
+    INT 21H
+
+    ; Imprime nova linha
+    LEA DX, NOVA_LINHA
+    MOV AH, 09h
+    INT 21h
+
+    MOV CL, 3; CX = contador de LINHAS (3 linhas)
+    XOR SI,SI; SI = offset/índice (começa em 0)
+PRINTT_LINHA:
+    ; === Imprime a linha no formato: [char] | [char] | [char] ===
+    
+    ; Primeiro caractere da linha
+    MOV DL, TABULEIRO[BX][SI]     ; Lê usando [BX][SI]
+    MOV AH, 02h
+    INT 21h        
+    
+    ; Separador " | "
+    LEA DX, SEPARADOR_COL
+    MOV AH, 09h
+    INT 21h
+    
+    ;+1 em si 
+    INC SI
+
+    ;se diferente de 0 jumpa
+    DEC CL
+    JNZ PRINTT_LINHA
+
+
+    ; Imprime nova linha
+    LEA DX, NOVA_LINHA
+    MOV AH, 09h
+    INT 21h
+    
+    ; Imprime a linha divisória "---+---+---"
+    LEA DX, SEPARADOR_LIN
+    MOV AH, 09h
+    INT 21h
+
+    ;pula pra proxima linha 
+    ADD BX,3
+
+
+    ;se ch diferente de 0 jumpa pra print_coluna
+    DEC CH
+    JNZ PRINTT_COLUNA
+    
+       
+    
+    POP SI
+    POP DX
+    POP CX
+    POP BX
+    POP AX
+    RET
+IMPRIMIRTABULEIRO ENDP
 END MAIN
