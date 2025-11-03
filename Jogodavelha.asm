@@ -59,33 +59,23 @@ MAIN PROC
     INT 21h; printa nova_linha
     LEA DX, MSGMENU
     MOV AH, 09h
-    INT 21h; printa msgmenu
-
+    INT 21h; printa msgmenu 
+    
     ;Lê um caracter e coloca em al
     MOV AH,01H
-    INT 21H
-   
-   ; 5. Mostra o título "TABULEIRO:"
-    LEA DX, MSG4
-    MOV AH, 09h
     INT 21h
 
-    ; Pula uma linha extra
-    LEA DX, NOVA_LINHA
-    MOV AH, 09h
-    INT 21h
-
-    ;6. Imprime o tabuleiro preenchido
+     ;6. Imprime o tabuleiro preenchido
     CALL IMPRIMIRMATRIZ
-   
+
     ;compara AL com esses valores pra saber pra onde ir no programa
-    CMP AL,1
-    ;JMP JOGA_MAQUINA
-    CMP AL,2
-    JMP JOGA_2
-    CMP AL,3
+    CMP AL,'1'
+    JE JOGA_2
+    ;CMP AL,2
+    ;JE JOGA_MAQUINA
     JMP FIM
-    
+
+   
 JOGA_MAQUINA:
     ;CALL LEITURA_MAQUINA
     
@@ -112,8 +102,13 @@ LEITURA2JOG PROC
     PUSH DX
     PUSH SI
 
-    MOV AX, 1     
-    TEST AX, 1      ; Testa o último bit de AX
+    MOV CX,9; vezes totais so como teste jão
+
+    XOR BX,BX;zera ax
+
+TURNOS:
+    INC BX  
+    TEST BX, 1      ; Testa o último bit de AX
     JZ PAR       ; PULA SE FOR ZERO (se ZF=1). Ou seja, se for PAR.
 
     IMPAR:
@@ -126,19 +121,12 @@ LEITURA2JOG PROC
     PAR:
     LEA DX,MSGVEZ_O
     MOV AH,09 
-    INT 21h;PRINTA MSGVEZ_
+    INT 21h;PRINTA MSGVEZ_O
 
     FIM_TESTE:
+    CALL POSICAO;chama o procedimento posicao
 
-    MOV AH,01H
-    INT 21H
-
-
-
-
-    ; ... continua o programa ...
-
-
+    loop TURNOS
 
     POP SI
     POP DX
@@ -157,7 +145,7 @@ POSICAO PROC
     
     LEA DX,MSG_JOGADA
     MOV AH,09
-    INT 21;printa MSG_JOGADA
+    INT 21h;printa MSG_JOGADA
 
     MOV AH,01H
     INT 21H;Lê o caracter e coloca em al
@@ -205,11 +193,26 @@ IMPRIMIRMATRIZ PROC
     PUSH DX
     PUSH SI
 
+    ; Imprime nova linha
+    LEA DX, NOVA_LINHA
+    MOV AH, 09h
+    INT 21h
+
+    ; Mostra o título "TABULEIRO:"
+    LEA DX, MSG4
+    MOV AH, 09h
+    INT 21h
+
     XOR BX,BX;Indice de linha
 
     XOR CX,CX
     MOV CH,3; contador de COLUNAS
 PRINT_COLUNA:
+   ;Imprime ' '
+    MOV DL,' '
+    MOV AH,02h
+    INT 21H
+
     ; Imprime nova linha
     LEA DX, NOVA_LINHA
     MOV AH, 09h
