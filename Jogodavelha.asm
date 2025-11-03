@@ -39,6 +39,11 @@
     
     ; Constantes para dimensões
     NUM_COLUNAS EQU 3
+
+    ;Matriz exemplo
+    matriz_exemplo db '1','2','3'
+                   db '4','5','6'
+                   db '7','8','9'
     
 .CODE
 ; MAIN - Programa Principal
@@ -56,25 +61,44 @@ MAIN PROC
     MOV AH, 09h
     INT 21h; printa msgmenu
 
-    ; 3. Pula uma linha extra
-    LEA DX, NOVA_LINHA
-    MOV AH, 09h
-    INT 21h
-    
-    ; 4. Lê os 9 valores
-    CALL LERMATRIZ    
-    
-    ; 5. Mostra o título "TABULEIRO:"
+    ;Lê um caracter e coloca em al
+    MOV AH,01H
+    INT 21H
+   
+   ; 5. Mostra o título "TABULEIRO:"
     LEA DX, MSG4
     MOV AH, 09h
     INT 21h
-    
-    ; 6. Imprime o tabuleiro preenchido
+
+    ; Pula uma linha extra
+    LEA DX, NOVA_LINHA
+    MOV AH, 09h
+    INT 21h
+
+    ;6. Imprime o tabuleiro preenchido
     CALL IMPRIMIRMATRIZ
+   
+    ;compara AL com esses valores pra saber pra onde ir no programa
+    CMP AL,1
+    ;JMP JOGA_MAQUINA
+    CMP AL,2
+    JMP JOGA_2
+    CMP AL,3
+    JMP FIM
     
+JOGA_MAQUINA:
+    ;CALL LEITURA_MAQUINA
+    
+
+JOGA_2:
+    CALL LEITURA2JOG
+
+FIM:
+
     ; 7. Encerra o programa
     MOV AH, 4Ch
-    INT 21h       
+    INT 21h     
+    
 MAIN ENDP 
 
 
@@ -91,18 +115,27 @@ LEITURA2JOG PROC
     MOV AX, 1     
     TEST AX, 1      ; Testa o último bit de AX
     JZ PAR       ; PULA SE FOR ZERO (se ZF=1). Ou seja, se for PAR.
+
     IMPAR:
     LEA DX,MSGVEZ_X
     MOV AH,09 
-    INT 21h
+    INT 21h;PRINTA MSGVEZ_X
     JMP FIM_TESTE
 
+    
     PAR:
     LEA DX,MSGVEZ_O
     MOV AH,09 
-    INT 21h
+    INT 21h;PRINTA MSGVEZ_
 
     FIM_TESTE:
+
+    MOV AH,01H
+    INT 21H
+
+
+
+
     ; ... continua o programa ...
 
 
@@ -152,7 +185,7 @@ POSICAO PROC
     MOV AH,09
     INT 21
 
-    MOV AH
+    
     POP SI
     POP DX
     POP CX
@@ -162,7 +195,7 @@ POSICAO PROC
 POSICAO ENDP 
 
 IMPRIMIRMATRIZ PROC  
-;entrada: matriz 3x3 lida em LERMATRIZ
+;entrada: matriz definid em data
 ;saida: impressão da matriz 3x3
 ;o que faz: imprime uma matriz 3x3
 
@@ -171,63 +204,60 @@ IMPRIMIRMATRIZ PROC
     PUSH CX
     PUSH DX
     PUSH SI
-    
-    LEA BX, TABULEIRO    ; BX = endereço base do tabuleiro
-    MOV CX, 3            ; CX = contador de LINHAS (3 linhas)
-    MOV SI, 0            ; SI = offset/índice (começa em 0)
-    
+
+    XOR BX,BX;Indice de linha
+
+    XOR CX,CX
+    MOV CH,3; contador de COLUNAS
+PRINT_COLUNA:
+    ; Imprime nova linha
+    LEA DX, NOVA_LINHA
+    MOV AH, 09h
+    INT 21h
+
+    MOV CL, 3; CX = contador de LINHAS (3 linhas)
+    XOR SI,SI; SI = offset/índice (começa em 0)
 PRINT_LINHA:
     ; === Imprime a linha no formato: [char] | [char] | [char] ===
     
     ; Primeiro caractere da linha
-    MOV DL, [BX][SI]     ; Lê usando [BX][SI]
+    MOV DL, matriz_exemplo [BX][SI]     ; Lê usando [BX][SI]
     MOV AH, 02h
-    INT 21h
-    INC SI               ; Próxima coluna
+    INT 21h        
     
     ; Separador " | "
     LEA DX, SEPARADOR_COL
     MOV AH, 09h
     INT 21h
     
-    ; Segundo caractere da linha
-    MOV DL, [BX][SI]     ; Lê usando [BX][SI]
-    MOV AH, 02h
-    INT 21h
-    INC SI               ; Próxima coluna
-    
-    ; Separador " | "
-    LEA DX, SEPARADOR_COL
-    MOV AH, 09h
-    INT 21h
-    
-    ; Terceiro caractere da linha
-    MOV DL, [BX][SI]     ; Lê usando [BX][SI]
-    MOV AH, 02h
-    INT 21h
-    INC SI               ; Próxima linha (SI agora aponta para início da próxima linha)
-    
-    ; Pula para a próxima linha (CR/LF)
+    ;+1 em si 
+    INC SI
+
+    ;se diferente de 0 jumpa
+    DEC CL
+    JNZ PRINT_LINHA
+
+
+    ; Imprime nova linha
     LEA DX, NOVA_LINHA
     MOV AH, 09h
     INT 21h
-    
-    ; Verifica se é a última linha
-    CMP CX, 1
-    JE FIM_PRINT_LOOP
     
     ; Imprime a linha divisória "---+---+---"
     LEA DX, SEPARADOR_LIN
     MOV AH, 09h
     INT 21h
-    
-    ; Pula para a próxima linha (CR/LF)
-    LEA DX, NOVA_LINHA
-    MOV AH, 09h
-    INT 21h
+
+    ;pula pra proxima linha 
+    ADD BX,3
+
+
+    ;se ch diferente de 0 jumpa pra print_coluna
+    DEC CH
+    JNZ PRINT_COLUNA
     
 FIM_PRINT_LOOP:
-    LOOP PRINT_LINHA     ; Decrementa CX e repete
+       
     
     POP SI
     POP DX
