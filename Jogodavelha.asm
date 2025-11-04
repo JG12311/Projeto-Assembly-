@@ -44,6 +44,9 @@
     MATRIZ         DB '1','2','3'  ; Primeira linha
                    DB '4','5','6'  ; Segunda linha
                    DB '7','8','9'  ; Terceira linha
+                
+    ;Flag de vitória
+    WIN_FLAG EQU 0
     
 .CODE
 ; MAIN - Programa Principal
@@ -101,7 +104,7 @@ LEITURA2JOG PROC
     PUSH BX
     PUSH CX
     PUSH DX
-    PUSH SI
+    PUSH SI;salva o valor dos registradores na pilha
 
     ; Inicializa o tabuleiro com espaços
     MOV CX,3            ; Contador de linhas
@@ -141,10 +144,16 @@ TURNOS:
     MOV AH,09 
     INT 21h
 
+
     FIM_TESTE:
     CALL POSICAO
     CALL IMPRIMIRTABULEIRO    ; Mostra tabuleiro após cada jogada
+    CMP CX,5
+    JGE final_loop
+    CALL VITORIA
 
+
+    final_loop:
     LOOP TURNOS
 
     POP SI
@@ -152,7 +161,7 @@ TURNOS:
     POP CX
     POP BX
     POP AX
-    POP DI
+    POP DI;retorna o valor dos registradores salvos na pilha
     RET
 LEITURA2JOG ENDP
 
@@ -161,7 +170,7 @@ POSICAO PROC
     PUSH BX
     PUSH CX
     PUSH DX
-    PUSH SI
+    PUSH SI;salva o valor dos registradores na pilha
 
 INICIO_PREENCHER: 
     LEA DX,MSG_JOGADA
@@ -226,19 +235,61 @@ FIM_PREENCHER:
     POP DX
     POP CX
     POP BX
-    POP AX
+    POP AX;retorna o valor dos registradores salvos na pilha
     
     RET
 POSICAO ENDP 
 
 VITORIA PROC
-PUSH AX
-PUSH BX
-PUSH CX 
-PUSH DX 
-PUSH SI 
+    PUSH AX
+    PUSH BX
+    PUSH CX 
+    PUSH DX 
+    PUSH SI;salva o valor dos registradores na pilha 
 
-PUSH
+    XOR BX,BX;ZERA 
+    MOV CH,3; contador de linhas
+
+;checa se X ganhou nas linhas
+checa_coluna_x:
+    MOV WIN_FLAG,0
+    XOR SI,SI
+    MOV CL,3; contador de colunas
+checa_linha_x:
+    CMP MATRIZ[BX][SI],'X'
+    JE SOMA_X
+    ADD BX,3;pula pra prozima linha
+    DEC CH
+    JNZ CHECA_COLUNA_X;se nao for 0 jumpa
+    
+
+
+SOMA_X:
+    INC WIN_FLAG
+    DEC CL
+    JNZ checa_coluna_x
+    CMP WIN_FLAG,3
+    JE VICTORY
+
+    
+    
+
+
+FIM_X_LINHA:
+    ;fim da checagem de linhas de X depois disso fazer colunas e diagonal de X
+
+
+VICTORY:
+    ;BGL PRA IR PRO FIM DO PROGRAMA, a ser feito ainda, colocar a vitoria do X e 0 aqui
+
+
+
+
+    POP SI
+    POP DX 
+    POP CX
+    POP BX 
+    POP AX;retorna o valor dos registradores salvos na pilha
 VITORIA ENDP 
 
 IMPRIMIRMATRIZ PROC  
@@ -250,7 +301,7 @@ IMPRIMIRMATRIZ PROC
     PUSH BX
     PUSH CX
     PUSH DX
-    PUSH SI
+    PUSH SI;salva o valor dos registradores na pilha
 
     ; Imprime nova linha
     LEA DX, NOVA_LINHA
@@ -323,7 +374,7 @@ FIM_PRINT_LOOP:
     POP DX
     POP CX
     POP BX
-    POP AX
+    POP AX;retorna o valor dos registradores salvos na pilha
     RET
 IMPRIMIRMATRIZ ENDP
 
@@ -336,7 +387,7 @@ IMPRIMIRTABULEIRO PROC
     PUSH BX
     PUSH CX
     PUSH DX
-    PUSH SI
+    PUSH SI;salva o valor dos registradores na pilha 
 
     ; Imprime nova linha
     LEA DX, NOVA_LINHA
@@ -410,7 +461,7 @@ PRINTT_LINHA:
     POP DX
     POP CX
     POP BX
-    POP AX
+    POP AX;retorna o valor dos registradores salvos na pilha
     RET
 IMPRIMIRTABULEIRO ENDP
 END MAIN
