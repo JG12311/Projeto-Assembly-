@@ -46,7 +46,7 @@
                    DB '7','8','9'  ; Terceira linha
                 
     ;Flag de vitória
-    WIN_FLAG EQU 0
+    WIN_FLAG DB 0
     
 .CODE
 ; MAIN - Programa Principal
@@ -227,7 +227,7 @@ OCUPADA:
     MOV AH,09h
     INT 21h 
     JMP INICIO_PREENCHER
-CALL VITORIA
+
 
 FIM_PREENCHER:
     CALL IMPRIMIRTABULEIRO
@@ -256,7 +256,7 @@ checa_coluna_x:
     XOR SI,SI
     MOV CL,3; contador de colunas
 checa_linha_x:
-    CMP MATRIZ[BX][SI],'X'
+    CMP TABULEIRO[BX][SI],'X'
     JE SOMA_X
     ADD BX,3;pula pra prozima linha
     DEC CH
@@ -290,6 +290,7 @@ VICTORY:
     POP CX
     POP BX 
     POP AX;retorna o valor dos registradores salvos na pilha
+    RET
 VITORIA ENDP 
 
 IMPRIMIRMATRIZ PROC  
