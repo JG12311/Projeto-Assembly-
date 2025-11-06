@@ -21,6 +21,7 @@
     MSGVEZ_X       DB 0Dh, 0Ah, '>>> Vez do jogador X <<<', 0Dh, 0Ah, '$'
     MSGVEZ_O       DB 0Dh, 0Ah, '>>> Vez do jogador O <<<', 0Dh, 0Ah, '$'
     MSGVEZ_CPU     DB 0Dh, 0Ah, '>>> Vez do Computador <<<', 0Dh, 0Ah, '$'
+    INVALIDA        DB 0Dh, 0Ah, 'Numero invalido. Tente novamente!', 0Dh, 0Ah, '$'
 
     ; === MENSAGENS DE ERRO E FIM DE JOGO ===
     MSG_INVALIDA    DB 0Dh, 0Ah, 'Jogada invalida! Tente novamente.', 0Dh, 0Ah, '$'
@@ -54,12 +55,16 @@ MAIN PROC
     MOV AX, @DATA   
     MOV DS, AX
     
+    COMECO:
     LEA DX, MSG_INSTRUCOES
     MOV AH, 09h
     INT 21h; printa msg_instrucoes
     LEA DX, NOVA_LINHA
     MOV AH, 09h
     INT 21h; printa nova_linha
+    
+    
+    MENU:
     LEA DX, MSGMENU
     MOV AH, 09h
     INT 21h; printa msgmenu 
@@ -69,22 +74,37 @@ MAIN PROC
     INT 21h
 
      ;6. Imprime o tabuleiro preenchido
-    CALL IMPRIMIRMATRIZ
+    
 
     ;compara AL com esses valores pra saber pra onde ir no programa
     CMP AL,'1'
     JE JOGA_2
     ;CMP AL,2
     ;JE JOGA_MAQUINA
-    JMP FIM
 
-   
+    CMP AL,'1'
+    JB INVALIDO
+
+    CMP AL,'3'
+    JA INVALIDO;se for maior do que 3 e menor do que vai jumpar pro invalido
+
+    JMP FIM
+    INVALIDO:
+    MOV AH,09H
+    LEA DX,INVALIDA
+    INT 21H;printa a mensagem de invalido
+
+    JMP MENU;jumpa pro menu
+    
+   CALL IMPRIMIRMATRIZ
 JOGA_MAQUINA:
     ;CALL LEITURA_MAQUINA
-    
-
+    JMP COMECO
 JOGA_2:
     CALL LEITURA2JOG
+    JMP COMECO
+
+
 
 FIM:
 
@@ -148,14 +168,37 @@ TURNOS:
     FIM_TESTE:
     CALL POSICAO
     CALL IMPRIMIRTABULEIRO    ; Mostra tabuleiro após cada jogada
-    CMP CX,5
-    JGE final_loop
+    
+    ; Verifica vitória a partir da 5ª jogada
+    CMP DI,4                  ; DI começa do 0, então 4 é a 5ª jogada
+    JLE continua_jogo        ; Se menor que 5 jogadas, continua
+    
     CALL VITORIA
-
-
-    final_loop:
+    CMP WIN_FLAG,0
+    JE continua_jogo         ; Se ninguém ganhou, continua
+    JMP FIM_JOGO            ; Se alguém ganhou, termina
+    
+continua_jogo:
+    JMP final_loop
+    
+final_loop:
     LOOP TURNOS
 
+    ; Verifica empate apenas se chegou ao fim sem vencedor
+    CMP WIN_FLAG,0
+    JNE FIM_JOGO
+    MOV AH,09h
+    LEA DX,MSG_EMPATE
+    INT 21h
+
+    ; Se chegou aqui e WIN_FLAG = 0, é empate (todas jogadas feitas sem vencedor)
+    CMP WIN_FLAG,0
+    JNE FIM_JOGO
+    MOV AH,09h
+    LEA DX,MSG_EMPATE
+    INT 21h
+
+FIM_JOGO:
     POP SI
     POP DX
     POP CX
@@ -247,44 +290,181 @@ VITORIA PROC
     PUSH DX 
     PUSH SI;salva o valor dos registradores na pilha 
 
-    XOR BX,BX;ZERA 
-    MOV CH,3; contador de linhas
+    XOR BX,BX       ;ZERA BX para começar da primeira linha
+    MOV CH,3        ;contador de linhas
 
 ;checa se X ganhou nas linhas
-checa_coluna_x:
+checa_linha_x:
+    MOV WIN_FLAG,0
+    XOR SI,SI       ;zera SI para começar da primeira coluna
+    MOV CL,3        ;contador de colunas
+conta_x_linha:
+    CMP TABULEIRO[BX][SI],'X'
+    JNE prox_linha_x
+    INC WIN_FLAG
+    INC SI          ;próxima coluna
+    DEC CL
+    JNZ conta_x_linha
+    CMP WIN_FLAG,3
+    JNE prox_linha_x    ; Inverte a lógica do salto
+    JMP VICTORY_X       ; Usa JMP para salto longo
+prox_linha_x:
+    ADD BX,3        ;pula pra próxima linha
+    DEC CH
+    JNZ checa_linha_x
+
+;checa se O ganhou nas linhas
+    XOR BX,BX       ;volta para primeira linha
+    MOV CH,3        ;reseta contador de linhas
+checa_linha_o:
     MOV WIN_FLAG,0
     XOR SI,SI
-    MOV CL,3; contador de colunas
-checa_linha_x:
-    CMP TABULEIRO[BX][SI],'X'
-    JE SOMA_X
-    ADD BX,3;pula pra prozima linha
-    DEC CH
-    JNZ CHECA_COLUNA_X;se nao for 0 jumpa
-    
-
-
-SOMA_X:
+    MOV CL,3        ;contador de colunas
+conta_o_linha:
+    CMP TABULEIRO[BX][SI],'O'
+    JNE prox_linha_o
     INC WIN_FLAG
+    INC SI
     DEC CL
-    JNZ checa_coluna_x
+    JNZ conta_o_linha
     CMP WIN_FLAG,3
-    JE VICTORY
+    JNE prox_linha_o    ; Inverte a lógica do salto
+    JMP VICTORY_O       ; Usa JMP para salto longo
+prox_linha_o:
+    ADD BX,3        ;próxima linha
+    DEC CH
+    JNZ checa_linha_o
 
-    
-    
+;checa se X ganhou nas colunas
+    XOR SI,SI       ;começa da primeira coluna
+    MOV CH,3        ;3 colunas para verificar
+checa_coluna_x:
+    MOV WIN_FLAG,0
+    XOR BX,BX       ;começa da primeira linha
+    MOV CL,3        ;3 posições em cada coluna
+conta_x_coluna:
+    CMP TABULEIRO[BX][SI],'X'
+    JNE prox_coluna_x
+    INC WIN_FLAG
+    ADD BX,3        ;próxima linha
+    DEC CL
+    JNZ conta_x_coluna
+    CMP WIN_FLAG,3
+    JNE prox_coluna_x   ; Inverte a lógica do salto
+    JMP VICTORY_X       ; Usa JMP para salto longo
+prox_coluna_x:
+    INC SI          ;próxima coluna
+    DEC CH
+    JNZ checa_coluna_x
 
+;checa se O ganhou nas colunas
+    XOR SI,SI       ;volta para primeira coluna
+    MOV CH,3        ;reseta contador de colunas
+checa_coluna_o:
+    MOV WIN_FLAG,0
+    XOR BX,BX       ;começa da primeira linha
+    MOV CL,3        ;3 posições em cada coluna
+conta_o_coluna:
+    CMP TABULEIRO[BX][SI],'O'
+    JNE prox_coluna_o
+    INC WIN_FLAG
+    ADD BX,3        ;próxima linha
+    DEC CL
+    JNZ conta_o_coluna
+    CMP WIN_FLAG,3
+    JNE prox_coluna_o   ; Inverte a lógica do salto
+    JMP VICTORY_O       ; Usa JMP para salto longo
+prox_coluna_o:
+    INC SI          ;próxima coluna
+    DEC CH
+    JNZ checa_coluna_o
 
-FIM_X_LINHA:
-    ;fim da checagem de linhas de X depois disso fazer colunas e diagonal de X
+;checa diagonal principal X (0,0)(1,1)(2,2)
+    MOV WIN_FLAG,0
+    XOR BX,BX       ;começa do topo
+    XOR SI,SI
+    MOV CX,3        ;3 posições para checar
+checa_diag1_x:
+    CMP TABULEIRO[BX][SI],'X'
+    JNE checa_diag1_o
+    INC WIN_FLAG
+    ADD BX,3        ;próxima linha
+    INC SI          ;próxima coluna
+    DEC CX
+    JNZ checa_diag1_x
+    CMP WIN_FLAG,3
+    JE VICTORY_X
 
+;checa diagonal principal O
+checa_diag1_o:
+    MOV WIN_FLAG,0
+    XOR BX,BX
+    XOR SI,SI
+    MOV CX,3
+conta_o_diag1:
+    CMP TABULEIRO[BX][SI],'O'
+    JNE checa_diag2_x
+    INC WIN_FLAG
+    ADD BX,3
+    INC SI
+    DEC CX
+    JNZ conta_o_diag1
+    CMP WIN_FLAG,3
+    JE VICTORY_O
 
-VICTORY:
-    ;BGL PRA IR PRO FIM DO PROGRAMA, a ser feito ainda, colocar a vitoria do X e 0 aqui
+;checa diagonal secundária X (0,2)(1,1)(2,0)
+checa_diag2_x:
+    MOV WIN_FLAG,0
+    XOR BX,BX       ;começa do topo
+    MOV SI,2        ;começa da última coluna
+    MOV CX,3
+conta_x_diag2:
+    CMP TABULEIRO[BX][SI],'X'
+    JNE checa_diag2_o
+    INC WIN_FLAG
+    ADD BX,3        ;próxima linha
+    DEC SI          ;coluna anterior
+    DEC CX
+    JNZ conta_x_diag2
+    CMP WIN_FLAG,3
+    JE VICTORY_X
 
+;checa diagonal secundária O
+checa_diag2_o:
+    MOV WIN_FLAG,0
+    XOR BX,BX
+    MOV SI,2
+    MOV CX,3
+conta_o_diag2:
+    CMP TABULEIRO[BX][SI],'O'
+    JNE FIM_VERIFICACAO
+    INC WIN_FLAG
+    ADD BX,3
+    DEC SI
+    DEC CX
+    JNZ conta_o_diag2
+    CMP WIN_FLAG,3
+    JNE FIM_VERIFICACAO  ; Inverte a lógica do salto
+    JMP VICTORY_O       ; Usa JMP para salto longo
 
+FIM_VERIFICACAO:
+    JMP FIMVIC
 
+VICTORY_X:
+    MOV WIN_FLAG,1      ;sinaliza vitória do X primeiro
+    MOV AH,09H
+    LEA DX,MSG_VITORIA_X
+    INT 21h
+    JMP FIMVIC
 
+VICTORY_O:
+    MOV WIN_FLAG,2      ;sinaliza vitória do O primeiro
+    MOV AH,09H
+    LEA DX,MSG_VITORIA_O
+    INT 21h
+    JMP FIMVIC
+
+FIMVIC:
     POP SI
     POP DX 
     POP CX
@@ -294,7 +474,7 @@ VICTORY:
 VITORIA ENDP 
 
 IMPRIMIRMATRIZ PROC  
-;entrada: matriz definid em data
+;entrada: matriz definida em data
 ;saida: impressão da matriz 3x3
 ;o que faz: imprime uma matriz 3x3
 
