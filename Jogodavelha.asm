@@ -16,14 +16,14 @@
                     DB '3. Sair', 0Dh, 0Ah
                     DB 'Escolha uma opcao: $' ,0Dh, 0Ah
 
-    ; === PROMPTS JOGADA E INDICAÇÃO DE VEZ ===
+    ;  PROMPTS JOGADA E INDICAÇÃO DE VEZ 
     MSG_JOGADA      DB 0Dh, 0Ah, 'Digite a posicao (1-9): $'
     MSGVEZ_X       DB 0Dh, 0Ah, '>>> Vez do jogador X <<<', 0Dh, 0Ah, '$'
     MSGVEZ_O       DB 0Dh, 0Ah, '>>> Vez do jogador O <<<', 0Dh, 0Ah, '$'
     MSGVEZ_CPU     DB 0Dh, 0Ah, '>>> Vez do Computador <<<', 0Dh, 0Ah, '$'
     INVALIDA        DB 0Dh, 0Ah, 'Numero invalido. Tente novamente!', 0Dh, 0Ah, '$'
 
-    ; === MENSAGENS DE ERRO E FIM DE JOGO ===
+    ;  MENSAGENS DE ERRO E FIM DE JOGO 
     MSG_INVALIDA    DB 0Dh, 0Ah, 'Jogada invalida! Tente novamente.', 0Dh, 0Ah, '$'
     MSG_OCUPADA     DB 0Dh, 0Ah, 'Posicao ja ocupada! Tente novamente.', 0Dh, 0Ah, '$'
     MSG_VITORIA_X   DB 0Dh, 0Ah, 'JOGADOR X VENCEU!', 0Dh, 0Ah, '$'
@@ -73,8 +73,6 @@ MAIN PROC
     MOV AH,01H
     INT 21h
 
-     ;6. Imprime o tabuleiro preenchido
-    
 
     ;compara AL com esses valores pra saber pra onde ir no programa
     CMP AL,'1'
@@ -512,7 +510,7 @@ PRINT_COLUNA:
     MOV CL, 3; CX = contador de LINHAS (3 linhas)
     XOR SI,SI; SI = offset/índice (começa em 0)
 PRINT_LINHA:
-    ; === Imprime a linha no formato: [char] | [char] | [char] ===
+    ;  Imprime a linha no formato: [char] | [char] | [char] 
     
     ; Primeiro caractere da linha
     MOV DL, matriz [BX][SI]     ; Lê usando [BX][SI]
