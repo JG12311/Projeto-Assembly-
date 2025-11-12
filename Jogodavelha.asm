@@ -34,6 +34,8 @@ TITLE JOGO DA VELHA
     SEPARADOR_LIN   DB "---+---+---$"
     
     TABULEIRO       DB 3 DUP(3 DUP(?))
+
+    RANDOMIZADOR    DW 3
     
     NUM_COLUNAS     EQU 3
     
@@ -252,7 +254,23 @@ INICIO_PREENCHER:
     SUB AL, '1'; converte de '1'-'3' para 0-2
     XOR AH, AH
     MOV SI, AX; SI = índice da coluna
-    JMP VERIFICA_OCUPACAO
+
+VERIFICA_OCUPACAO:
+    ; Verifica se posição está ocupada
+    CMP TABULEIRO[BX][SI], ' '
+    JNE OCUPADA; se não estiver vazia, posição ocupada
+    
+    ; Verifica vez do jogador
+    TEST DI, 1
+    JZ MARCA_O
+    
+MARCA_X:
+    MOV TABULEIRO[BX][SI], 'X'; jogador 1 marca X
+    JMP FIM_PREENCHER
+    
+MARCA_O:
+    MOV TABULEIRO[BX][SI], 'O'; jogador 2 marca O
+    JMP FIM_PREENCHER
 
 ENTRADA_INVALIDA:
     LEA DX, MSG_INVALIDA
@@ -404,39 +422,42 @@ JOGADA_HUMANO:
     SUB AL, '1'; converte de '1'-'3' para 0-2
     XOR AH, AH
     MOV SI, AX; SI = índice da coluna
-    JMP VERIFICA_OCUPACAO
+    JMP VERIFICA_OCUPACAO_PC
 
 JOGADA_CPU:
-TENTA_JOGADA_CPU:
     ;gera linha
-    MOV AH,2CH
-    INT 21H; obtém tempo do sistema (centésimos de segundo em DL)
+    MOV AX,RANDOMIZADOR;coloca o valor do RANDOMIZADOR em Ax
+    MOV DX,25173
+    MUL DX
 
-    MOV AL,DL
-    XOR AH,AH; zera AH para divisão
+    ADD AX,13849
+    MOV RANDOMIZADOR,AX;coloca no randomizador para que garanta que um novo numero seja gerado
 
-    MOV BL,3
-    DIV BL; divide por 3, resto em AH (0-2)
+    XOR DX, DX
+    MOV BX, 3
+    DIV BX;divide 3 garantindo que esteja entre 0-2
+                   
+    MOV AL, DL;resto em dl           
+    MOV BL, 3
+    MUL BL; multiplica por 3 para obter a linha
 
-    MOV AL,AH; AL = resto (linha aleatória 0-2)
-    MUL BL; AX = linha * 3 (calcula o offset da linha)
-    MOV BX,AX; BX = índice da linha na matriz
+    MOV BX, AX;coloca em BX o numero
+
 
     ;gera coluna
-    MOV AH,2CH
-    INT 21H; obtém tempo do sistema novamente
+    MOV AX,RANDOMIZADOR
+    MOV DX,8121
+    MUL DX
+    ADD AX,28411
+    MOV RANDOMIZADOR,AX;coloca no randomizador para que garanta a geração de um novo número
 
-    MOV AL,DL
-    XOR AH,AH; zera AH para divisão
+    XOR DX,DX
+    MOV CX,3
+    DIV CX;garante que o numero esta entre 0-2
 
-    MOV BL,3
-    DIV BL; divide por 3, resto em AH (0-2)
+    MOV SI,DX;coloca o numero no indice da coluna
 
-    MOV AL,AH; AL = resto (coluna aleatória 0-2)
-    XOR AH,AH
-    MOV SI,AX; SI = índice da coluna
-
-VERIFICA_OCUPACAO:
+VERIFICA_OCUPACAO_PC:
     ; Verifica se posição está ocupada
     CMP TABULEIRO[BX][SI], ' '
     JNE POSICAO_OCUPADA_PC; se não estiver vazia, posição ocupada
@@ -461,7 +482,7 @@ INVALIDA_HUMANO:
     
 POSICAO_OCUPADA_PC:
     TEST DI, 1
-    JZ TENTA_JOGADA_CPU; se for CPU, tenta nova posição automaticamente
+    JZ JOGADA_CPU; se for CPU, tenta nova posição automaticamente
     LEA DX, MSG_OCUPADA
     MOV AH, 09h
     INT 21h; printa mensagem de posição ocupada para humano
