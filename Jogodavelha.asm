@@ -25,9 +25,9 @@ TITLE JOGO DA VELHA
     MSG_VITORIA_X   DB 0Dh, 0Ah, 'JOGADOR X VENCEU!', 0Dh, 0Ah, '$'
     MSG_VITORIA_O   DB 0Dh, 0Ah, 'JOGADOR O VENCEU!', 0Dh, 0Ah, '$'
     MSG_EMPATE      DB 0Dh, 0Ah, 'EMPATE!', 0Dh, 0Ah, '$'
-    NOVAMENTE       DB 0Dh,0Ah, 'Deseja jogar novamente ?'0Dh, 0Ah
+    NOVAMENTE       DB 0Dh,0Ah, 'Deseja jogar novamente ?', 0Dh, 0Ah
                     DB '1. SIM', 0Dh, 0Ah
-                    DB '2. NÃO', 0Dh, 0Ah
+                    DB '2. NAO$', 0Dh, 0Ah
     MSG4            DB 0Dh, 0Ah, "TABULEIRO:", 0Dh, 0Ah, "$"
     NOVA_LINHA      DB 0Dh, 0Ah, "$"
     SEPARADOR_COL   DB " | $"
@@ -83,10 +83,38 @@ INVALIDO:
     
 JOGA_MAQUINA:
     CALL LEITURA_MAQUINA; chama a função para jogar contra a máquina
+
+    LEA DX, NOVAMENTE
+    MOV AH, 09h
+    INT 21h; printa o menu principal
+
+    MOV AH, 01H
+    INT 21h; pede e lê o input do jogador para iniciar o jogo ou sair dele
+
+    CMP AL,'1'
+    JE COMECO;se o jogador quiser continuar retorna pro começo
+
+    CMP AL,'2'
+    JE FIM;se não sai do programa
+
     JMP COMECO; volta para o começo
     
 JOGA_2:
     CALL LEITURA2JOG; chama a função para jogar com 2 jogadores
+
+    LEA DX, NOVAMENTE
+    MOV AH, 09h
+    INT 21h; printa o menu principal
+
+    MOV AH, 01H
+    INT 21h; pede e lê o input do jogador para iniciar o jogo ou sair dele
+
+    CMP AL,'1'
+    JE COMECO;se o jogador quiser continuar retorna pro começo
+
+    CMP AL,'2'
+    JE FIM;se não sai do programa
+
     JMP COMECO; volta para o começo
 
 FIM:
@@ -224,24 +252,8 @@ INICIO_PREENCHER:
     SUB AL, '1'; converte de '1'-'3' para 0-2
     XOR AH, AH
     MOV SI, AX; SI = índice da coluna
-    
-    ; Verifica se posição está ocupada
-    CMP TABULEIRO[BX][SI], ' '
-    JNE OCUPADA; se não estiver vazia, posição ocupada
-    
-    ; Verifica vez do jogador
-    TEST DI, 1
-    JZ PAR_PREENCHER; se for par, jogador O
-    
-    MOV TABULEIRO[BX][SI], 'X'; jogador X marca sua posição
-    JMP ATUALIZA_TELA
-    
-PAR_PREENCHER:
-    MOV TABULEIRO[BX][SI], 'O'; jogador O marca sua posição
-    
-ATUALIZA_TELA:
-    JMP FIM_PREENCHER
-    
+    JMP VERIFICA_OCUPACAO
+
 ENTRADA_INVALIDA:
     LEA DX, MSG_INVALIDA
     MOV AH, 09h
@@ -264,16 +276,205 @@ FIM_PREENCHER:
 POSICAO ENDP
 
 LEITURA_MAQUINA PROC
-;entrada: 
-;saida:
-;o que faz:
+;entrada: Matriz tabuleiro definida em data
+;saida: Matriz preenchida com as jogadas (humano vs CPU)
+;o que faz: lê as jogadas entre jogador e computador e insere-as no tabuleiro
+    PUSH DI
+    PUSH AX
+    PUSH BX
+    PUSH CX
+    PUSH DX
+    PUSH SI;salva os resgistradores 
+    
+    ; Inicializa o tabuleiro com espaços
+    MOV CX, 3; contador de linhas
+    XOR BX, BX; zera o índice de linha
+INIT_LINHA_MAQUINA:
+    PUSH CX; salva o contador de linhas
+    MOV CX, 3; contador de colunas
+    XOR SI, SI; zera o índice de coluna
+INIT_COLUNA_MAQUINA:
+    MOV TABULEIRO[BX][SI], ' '; preenche a posição com espaço
+    INC SI; avança para a próxima coluna
+    LOOP INIT_COLUNA_MAQUINA; repete para todas as colunas
+    
+    ADD BX, 3; avança para a próxima linha
+    POP CX; recupera o contador de linhas
+    LOOP INIT_LINHA_MAQUINA; repete para todas as linhas
+    
+    CALL IMPRIMIRTABULEIRO; printa o tabuleiro vazio
+    
+    MOV CX, 9; contador de turnos (máximo 9 jogadas)
+    XOR DI, DI; zera o contador de jogadas
+    
+TURNOS_MAQUINA:
+    INC DI; incrementa o contador de jogadas
+    TEST DI, 1; testa se o número é ímpar ou par
+    JZ VEZ_O_MAQUINA; se for par (bit 0 = 0), vai para VEZ_O_MAQUINA
+    
+VEZ_X_MAQUINA:
+    LEA DX, MSGVEZ_X
+    MOV AH, 09
+    INT 21h; printa mensagem da vez do jogador X (humano)
+    JMP CONTINUA_TURNO_MAQUINA
+    
+VEZ_O_MAQUINA:
+    LEA DX, MSGVEZ_CPU
+    MOV AH, 09
+    INT 21h; printa mensagem da vez do Computador
+    
+CONTINUA_TURNO_MAQUINA:
+    CALL POSICAO_PC; lê a posição da jogada (humano ou CPU)
+    CALL IMPRIMIRTABULEIRO; printa o tabuleiro atualizado
+    
+    CMP DI, 4
+    JLE NAO_VERIFICA_VITORIA_MAQUINA; se houver menos de 5 jogadas, não verifica vitória ainda
+    
+    CALL VITORIA; verifica se alguém ganhou
+    CMP WIN_FLAG, 0
+    JE NAO_VERIFICA_VITORIA_MAQUINA; se ninguém ganhou, continua o jogo
+    JMP TERMINA_JOGO_MAQUINA; se alguém ganhou, termina o jogo
+    
+NAO_VERIFICA_VITORIA_MAQUINA:
+    LOOP TURNOS_MAQUINA; repete para o próximo turno
+    
+    CMP WIN_FLAG, 0
+    JNE TERMINA_JOGO_MAQUINA; se alguém ganhou, termina o jogo
+    MOV AH, 09h
+    LEA DX, MSG_EMPATE
+    INT 21h; se acabaram as jogadas sem vencedor, printa empate
 
-
-
-
-
+TERMINA_JOGO_MAQUINA:
+    POP SI
+    POP DX
+    POP CX
+    POP BX
+    POP AX
+    POP DI; recupera os registradores 
+    RET; retorna da função
 LEITURA_MAQUINA ENDP
 
+POSICAO_PC PROC
+;entrada: input do jogador humano ou geração aleatória da CPU
+;saida: matriz TABULEIRO preenchido com X (humano) ou O (CPU)
+;o que faz: preenche o tabuleiro com jogadas do humano ou posições geradas pela CPU
+    PUSH AX
+    PUSH BX
+    PUSH CX
+    PUSH DX
+    PUSH SI;salva os resgistradores 
+    
+    TEST DI,1
+    JZ JOGADA_CPU; se for par, vai para jogada do CPU
+    
+JOGADA_HUMANO:
+    ; Lê LINHA
+    LEA DX, MSG_LINHA
+    MOV AH, 09
+    INT 21h; printa mensagem para digitar a linha
+    
+    MOV AH, 01H
+    INT 21H; lê o caractere da linha
+    
+    ; Valida linha (1-3)
+    CMP AL, '1'
+    JB INVALIDA_HUMANO; se for menor que 1, entrada inválida
+    CMP AL, '3'
+    JA INVALIDA_HUMANO; se for maior que 3, entrada inválida
+    
+    SUB AL, '1'; converte de '1'-'3' para 0-2
+    MOV BL, 3
+    MUL BL; AX = linha * 3 (calcula o offset da linha)
+    MOV BX, AX; BX = índice da linha na matriz
+
+    ; Lê COLUNA
+    LEA DX, MSG_COLUNA
+    MOV AH, 09
+    INT 21h; printa mensagem para digitar a coluna
+    
+    MOV AH, 01H
+    INT 21H; lê o caractere da coluna
+    
+    ; Valida coluna (1-3)
+    CMP AL, '1'
+    JB INVALIDA_HUMANO; se for menor que 1, entrada inválida
+    CMP AL, '3'
+    JA INVALIDA_HUMANO; se for maior que 3, entrada inválida
+    
+    SUB AL, '1'; converte de '1'-'3' para 0-2
+    XOR AH, AH
+    MOV SI, AX; SI = índice da coluna
+    JMP VERIFICA_OCUPACAO
+
+JOGADA_CPU:
+TENTA_JOGADA_CPU:
+    ;gera linha
+    MOV AH,2CH
+    INT 21H; obtém tempo do sistema (centésimos de segundo em DL)
+
+    MOV AL,DL
+    XOR AH,AH; zera AH para divisão
+
+    MOV BL,3
+    DIV BL; divide por 3, resto em AH (0-2)
+
+    MOV AL,AH; AL = resto (linha aleatória 0-2)
+    MUL BL; AX = linha * 3 (calcula o offset da linha)
+    MOV BX,AX; BX = índice da linha na matriz
+
+    ;gera coluna
+    MOV AH,2CH
+    INT 21H; obtém tempo do sistema novamente
+
+    MOV AL,DL
+    XOR AH,AH; zera AH para divisão
+
+    MOV BL,3
+    DIV BL; divide por 3, resto em AH (0-2)
+
+    MOV AL,AH; AL = resto (coluna aleatória 0-2)
+    XOR AH,AH
+    MOV SI,AX; SI = índice da coluna
+
+VERIFICA_OCUPACAO:
+    ; Verifica se posição está ocupada
+    CMP TABULEIRO[BX][SI], ' '
+    JNE POSICAO_OCUPADA_PC; se não estiver vazia, posição ocupada
+    
+    ; Verifica vez do jogador
+    TEST DI, 1
+    JZ MARCA_O_PC; se for par, CPU marca O
+    
+MARCA_X_PC:
+    MOV TABULEIRO[BX][SI], 'X'; jogador humano marca X
+    JMP TERMINA_JOGADA_PC
+    
+MARCA_O_PC:
+    MOV TABULEIRO[BX][SI], 'O'; CPU marca O
+    JMP TERMINA_JOGADA_PC
+    
+INVALIDA_HUMANO:
+    LEA DX, MSG_INVALIDA
+    MOV AH, 09h
+    INT 21h; printa mensagem de entrada inválida
+    JMP JOGADA_HUMANO; pede novamente a entrada
+    
+POSICAO_OCUPADA_PC:
+    TEST DI, 1
+    JZ TENTA_JOGADA_CPU; se for CPU, tenta nova posição automaticamente
+    LEA DX, MSG_OCUPADA
+    MOV AH, 09h
+    INT 21h; printa mensagem de posição ocupada para humano
+    JMP JOGADA_HUMANO; pede novamente a entrada
+
+TERMINA_JOGADA_PC:
+    POP SI
+    POP DX
+    POP CX
+    POP BX
+    POP AX; recupera os registradores 
+    RET; retorna da função
+POSICAO_PC ENDP
 
 
 
