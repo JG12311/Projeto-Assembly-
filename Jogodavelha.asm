@@ -126,7 +126,7 @@ JOGA_2:
     JMP COMECO; volta para o começo
 
 FIM:
-    FINALIZAR ; <--- USO DA MACRO AQUI
+    FINALIZAR 
     
 MAIN ENDP
 
