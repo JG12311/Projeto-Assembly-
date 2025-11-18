@@ -1,18 +1,24 @@
 TITLE JOGO DA VELHA
+; Definição da Macro
+FINALIZAR MACRO
+    MOV AH, 4Ch
+    INT 21h
+ENDM
+TITLE JOGO DA VELHA
 .MODEL SMALL
 .STACK 100h
 .DATA
 
     MSG_INSTRUCOES  DB 0Dh, 0Ah, '--- INSTRUCOES ---', 0Dh, 0Ah
-                   DB 'Digite LINHA (1-3) e depois COLUNA (1-3):', 0Dh, 0Ah
-                   DB 'Exemplo: Linha 1, Coluna 1 = canto superior esquerdo', 0Dh, 0Ah
-                   DB 0Dh, 0Ah, '$'
+                    DB 'Digite LINHA (1-3) e depois COLUNA (1-3):', 0Dh, 0Ah
+                    DB 'Exemplo: Linha 1, Coluna 1 = canto superior esquerdo', 0Dh, 0Ah
+                    DB 0Dh, 0Ah, '$'
 
     MSGMENU         DB 0Dh, 0Ah, '--- MENU PRINCIPAL ---', 0Dh, 0Ah
-                   DB '1. Jogar: Dois Jogadores', 0Dh, 0Ah
-                   DB '2. Jogar: Contra Computador', 0Dh, 0Ah
-                   DB '3. Sair', 0Dh, 0Ah
-                   DB 'Escolha uma opcao: $'
+                    DB '1. Jogar: Dois Jogadores', 0Dh, 0Ah
+                    DB '2. Jogar: Contra Computador', 0Dh, 0Ah
+                    DB '3. Sair', 0Dh, 0Ah
+                    DB 'Escolha uma opcao: $'
 
     MSG_LINHA       DB 0Dh, 0Ah, 'Digite a LINHA (1-3): $'
     MSG_COLUNA      DB 0Dh, 0Ah, 'Digite a COLUNA (1-3): $'
@@ -120,8 +126,7 @@ JOGA_2:
     JMP COMECO; volta para o começo
 
 FIM:
-    MOV AH, 4Ch
-    INT 21h; termina o programa
+    FINALIZAR ; <--- USO DA MACRO AQUI
     
 MAIN ENDP
 
@@ -436,8 +441,8 @@ JOGADA_CPU:
     XOR DX, DX
     MOV BX, 3
     DIV BX;divide 3 garantindo que esteja entre 0-2
-                   
-    MOV AL, DL;resto em dl           
+                    
+    MOV AL, DL;resto em dl            
     MOV BL, 3
     MUL BL; multiplica por 3 para obter a linha
 
