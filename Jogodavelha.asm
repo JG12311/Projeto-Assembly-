@@ -104,9 +104,6 @@ TITLE JOGO DA VELHA
 
 .CODE
 
-;entrada nenhuma inicio do programa
-;saida interacao com usuario
-;o que faz gerencia o menu e escolhe o modo de jogo
 MAIN PROC
     MOV AX, @DATA
     MOV DS, AX
@@ -170,10 +167,11 @@ SAIR_JOGO:
     
 MAIN ENDP
 
+
+LEITURA_2_JOG PROC
 ;entrada: Matriz tabuleiro definida em data
 ;saida: Matriz preenchida com as jogadas
 ;o que faz: lê as jogadas entre 2 jogadores e insere-as no tabuleiro
-LEITURA_2_JOG PROC
     SALVA_TUDO
     
     ; loops aninhados para limpar o tabuleiro na memoria
@@ -235,10 +233,11 @@ FIM_DO_JOGO:
 LEITURA_2_JOG ENDP
 
 
+
+POSICAO PROC
 ;entrada: input do jogador lido em LEITURA2JOG
 ;saida: matriz TABULEIRO preenchido com o input do jogador 
 ;o que faz: preenche o tabuleiro com as jogadas de X e O
-POSICAO PROC
     SALVA_TUDO
     
 INICIO_POSICAO:
@@ -302,10 +301,11 @@ FIM_POSICAO:
     RET
 POSICAO ENDP
 
+
+LEITURA_MAQUINA PROC
 ;entrada variaveis globais
 ;saida controle do jogo contra cpu
 ;o que faz alterna entre jogador e computador
-LEITURA_MAQUINA PROC
     SALVA_TUDO
     
     ; rotina de limpeza do tabuleiro
@@ -363,10 +363,11 @@ FIM_JOGO_MAQUINA:
 LEITURA_MAQUINA ENDP
 
 
+
+POSICAO_MAQUINA PROC
 ;entrada: input do jogador humano ou geração aleatória da CPU
 ;saida: matriz TABULEIRO preenchido com X usuario ou O CPU
 ;o que faz: preenche o tabuleiro com jogadas do usuario ou posições geradas pela CPU
-POSICAO_MAQUINA PROC
     SALVA_TUDO
     
     ; decide se a jogada e manual ou automatica
@@ -465,10 +466,11 @@ SAI_POSICAO_PC:
 POSICAO_MAQUINA ENDP
 
 
+
+VITORIA PROC
 ;entrada: Matriz tabuleiro com as posições jogadas preenchidas pelo procedimento anterior
 ;saida: winflag, o qual diz se alguem ganhou nessa rodada ou não
 ;o que faz: printa o quem ganhou essa rodada e retorna pro main 
-VITORIA PROC
     SALVA_TUDO
     
     ; verifica as 3 linhas para o jogador X
@@ -648,10 +650,11 @@ SAI_VERIFICA:
     RET
 VITORIA ENDP
 
+
+IMPRIMIR_TAB PROC
 ;entrada matriz tabuleiro
 ;saida desenho do tabuleiro na tela
 ;o que faz imprime a grade do jogo
-IMPRIMIR_TAB PROC
     SALVA_TUDO
     
     IMPRIMIR PULA_LINHA
