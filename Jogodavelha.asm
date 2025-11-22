@@ -1,20 +1,51 @@
 TITLE JOGO DA VELHA
+
+; COMO FUNCIONA O JOGO
+; O objetivo e alinhar 3 simbolos iguais X ou O em linha coluna ou diagonal
+; O jogador escolhe se quer jogar contra outra pessoa ou contra o computador
+; Para jogar deve se digitar a LINHA de 1 a 3 e a COLUNA de 1 a 3
+; O jogo acaba quando alguem ganha ou quando o tabuleiro enche dando empate
+;
+; COMO FUNCIONA O CODIGO
+; 1 MEMORIA DO TABULEIRO
+; O tabuleiro e uma sequencia de 9 bytes na memoria
+; Para achar a posicao certa o codigo multiplica a LINHA por 3 e soma a COLUNA
+; Usa os registradores BX para linha e SI para coluna
+;
+; 2 CONTROLE DOS TURNOS
+; O registrador DI conta quantas jogadas foram feitas
+; O codigo testa se o numero em DI e par ou impar
+; Se for impar e a vez do X e se for par e a vez do O
+;
+; 3 JOGADAS DO COMPUTADOR
+; No modo contra a maquina o codigo usa matematica para gerar numeros
+; Ele cria coordenadas aleatorias para linha e coluna
+; Se a posicao criada ja estiver ocupada ele calcula outra
+;
+; 4 VERIFICACAO DE VITORIA
+; O codigo checa manualmente todas as possibilidades de vitoria
+; Ele olha as 3 linhas as 3 colunas e as 2 diagonais uma por uma
+; Se encontrar 3 simbolos iguais define quem ganhou
+;
+; 5 DESENHO NA TELA
+; Tudo foi utilizado textos definidos no .data e caracteres ASCII
+; O codigo usa interrupcoes do sistema INT 21h para escrever e ler dados
+
+
 ; definicao das macros
-
-
 FINALIZAR MACRO
-    MOV AH, 4Ch
+    MOV AH, 4Ch     ; funcao do dos para encerrar o programa
     INT 21h
 ENDM
 
 IMPRIMIR MACRO MENSAGEM
-    LEA DX, MENSAGEM
-    MOV AH, 09h
+    LEA DX, MENSAGEM ; carrega o endereco da string
+    MOV AH, 09h      ; funcao de impressao
     INT 21h
 ENDM
 
 SALVA_TUDO MACRO
-    PUSH AX
+    PUSH AX         ; salva contexto dos registradores
     PUSH BX
     PUSH CX
     PUSH DX
@@ -23,7 +54,7 @@ SALVA_TUDO MACRO
 ENDM
 
 RECUPERA_TUDO MACRO
-    POP DI
+    POP DI          ; restaura contexto dos registradores
     POP SI
     POP DX
     POP CX
@@ -36,30 +67,31 @@ TITLE JOGO DA VELHA
 .STACK 100h
 .DATA
 
-    MSG_INSTRUCOES  DB 0Dh, 0Ah, '--- INSTRUCOES ---', 0Dh, 0Ah
-                    DB 'Digite LINHA (1-3) e depois COLUNA (1-3):', 0Dh, 0Ah
-                    DB 'Exemplo: Linha 1, Coluna 1 = canto superior esquerdo', 0Dh, 0Ah
+    MSG_INSTRUCOES  DB 0Dh, 0Ah, ' INSTRUCOES ', 0Dh, 0Ah
+                    DB 'Digite LINHA de 1 a 3 e depois COLUNA de 1 a 3:', 0Dh, 0Ah
+                    DB 'Exemplo: Linha 1 e Coluna 1 igual canto superior esquerdo', 0Dh, 0Ah
                     DB 0Dh, 0Ah, '$'
 
-    MSG_MENU        DB 0Dh, 0Ah, '--- MENU PRINCIPAL ---', 0Dh, 0Ah
+    MSG_MENU        DB 0Dh, 0Ah, ' MENU PRINCIPAL ', 0Dh, 0Ah
                     DB '1. Jogar: Dois Jogadores', 0Dh, 0Ah
                     DB '2. Jogar: Contra Computador', 0Dh, 0Ah
                     DB '3. Sair', 0Dh, 0Ah
                     DB 'Escolha uma opcao: $'
 
-    MSG_LINHA       DB 0Dh, 0Ah, 'Digite a LINHA (1-3): $'
-    MSG_COLUNA      DB 0Dh, 0Ah, 'Digite a COLUNA (1-3): $'
+    MSG_LINHA       DB 0Dh, 0Ah, 'Digite a LINHA 1 a 3: $'
+    MSG_COLUNA      DB 0Dh, 0Ah, 'Digite a COLUNA 1 a 3: $'
     MSG_VEZ_X       DB 0Dh, 0Ah, '>>> Vez do jogador X <<<', 0Dh, 0Ah, '$'
     MSG_VEZ_O       DB 0Dh, 0Ah, '>>> Vez do jogador O <<<', 0Dh, 0Ah, '$'
     MSG_VEZ_MAQUINA DB 0Dh, 0Ah, '>>> Vez do Computador <<<', 0Dh, 0Ah, '$'
-    MSG_INVALIDA    DB 0Dh, 0Ah, 'Jogada invalida! Tente novamente.', 0Dh, 0Ah, '$'
-    MSG_OCUPADA     DB 0Dh, 0Ah, 'Posicao ja ocupada! Tente novamente.', 0Dh, 0Ah, '$'
-    MSG_VIT_X       DB 0Dh, 0Ah, 'JOGADOR X VENCEU!', 0Dh, 0Ah, '$'
-    MSG_VIT_O       DB 0Dh, 0Ah, 'JOGADOR O VENCEU!', 0Dh, 0Ah, '$'
-    MSG_EMPATE      DB 0Dh, 0Ah, 'EMPATE!', 0Dh, 0Ah, '$'
+    MSG_INVALIDA    DB 0Dh, 0Ah, 'Jogada invalida Tente novamente.', 0Dh, 0Ah, '$'
+    MSG_OCUPADA     DB 0Dh, 0Ah, 'Posicao ja ocupada Tente novamente.', 0Dh, 0Ah, '$'
+    MSG_VIT_X       DB 0Dh, 0Ah, 'JOGADOR X VENCEU', 0Dh, 0Ah, '$'
+    MSG_VIT_O       DB 0Dh, 0Ah, 'JOGADOR O VENCEU', 0Dh, 0Ah, '$'
+    MSG_EMPATE      DB 0Dh, 0Ah, 'EMPATE', 0Dh, 0Ah, '$'
     NOVAMENTE       DB 0Dh,0Ah, 'Deseja jogar novamente ?', 0Dh, 0Ah
                     DB '1. SIM', 0Dh, 0Ah
-                    DB '2. NAO$', 0Dh, 0Ah
+                    DB '2. NAO', 0Dh, 0Ah
+                    DB 'Escolha uma opcao: $'
     MSG_TAB         DB 0Dh, 0Ah, "TABULEIRO:", 0Dh, 0Ah, "$"
     PULA_LINHA      DB 0Dh, 0Ah, "$"
     SEP_COLUNA      DB " | $"
@@ -72,28 +104,33 @@ TITLE JOGO DA VELHA
 
 .CODE
 
+;entrada nenhuma inicio do programa
+;saida interacao com usuario
+;o que faz gerencia o menu e escolhe o modo de jogo
 MAIN PROC
     MOV AX, @DATA
     MOV DS, AX
     
 COMECO:
-    ; exibe instrucoes iniciais
+    ; exibe as instrucoes iniciais na tela
     IMPRIMIR MSG_INSTRUCOES
     IMPRIMIR PULA_LINHA
     
 MENU:
-    ; exibe o menu e le a opcao
+    ; desenha o menu e captura a escolha
     IMPRIMIR MSG_MENU
     
     MOV AH, 01h
     INT 21h
     
+    ; verifica qual opcao foi escolhida
     CMP AL, '1'
-    JE JOGA_2
+    JE JOGA_2       ; modo pvp
     
     CMP AL, '2'
-    JE JOGA_MAQUINA
+    JE JOGA_MAQUINA ; modo contra cpu
     
+    ; validacao da entrada para nao aceitar caracteres estranhos
     CMP AL, '1'
     JB INVALIDO
     CMP AL, '3'
@@ -107,14 +144,14 @@ INVALIDO:
     
 JOGA_MAQUINA:
     CALL LEITURA_MAQUINA
-    JMP PERGUNTA_RESTART
+    JMP PERGUNTA_RESTART ; ao fim do jogo pergunta se quer jogar de novo
     
 JOGA_2:
     CALL LEITURA_2_JOG
     JMP PERGUNTA_RESTART
 
 PERGUNTA_RESTART:
-    ; pergunta se quer jogar novamente
+    ; menu de reinicio do jogo
     IMPRIMIR NOVAMENTE
     MOV AH, 01h
     INT 21h
@@ -125,7 +162,6 @@ PERGUNTA_RESTART:
     CMP AL, '2'
     JE SAIR_JOGO
     
-    ; se nao for 1 nem 2, pula linha e pergunta de novo
     IMPRIMIR PULA_LINHA
     JMP PERGUNTA_RESTART
 
@@ -134,34 +170,37 @@ SAIR_JOGO:
     
 MAIN ENDP
 
+;entrada: Matriz tabuleiro definida em data
+;saida: Matriz preenchida com as jogadas
+;o que faz: lê as jogadas entre 2 jogadores e insere-as no tabuleiro
 LEITURA_2_JOG PROC
     SALVA_TUDO
     
-    ; limpa o tabuleiro preenchendo com espacos
+    ; loops aninhados para limpar o tabuleiro na memoria
     MOV CX, 3
     XOR BX, BX
 INIC_LINHA:
-    PUSH CX
+    PUSH CX         ; salva contador da linha
     MOV CX, 3
     XOR SI, SI
 INIC_COLUNA:
-    MOV TABULEIRO[BX][SI], ' '
+    MOV TABULEIRO[BX][SI], ' ' ; preenche com espaco vazio
     INC SI
     LOOP INIC_COLUNA
     
-    ADD BX, 3
-    POP CX
+    ADD BX, 3       ; avanca para a proxima linha da matriz
+    POP CX          ; recupera contador
     LOOP INIC_LINHA
     
     CALL IMPRIMIR_TAB
     
-    ; inicia ciclo de 9 jogadas
+    ; inicia o loop principal de 9 jogadas
     MOV CX, 9
-    XOR DI, DI
+    XOR DI, DI      ; di sera o contador de turnos
     
 CICLO_JOGO:
     INC DI
-    TEST DI, 1
+    TEST DI, 1      ; verifica se o turno e par ou impar
     JZ VEZ_JOGADOR_O
     
 VEZ_JOGADOR_X:
@@ -172,22 +211,22 @@ VEZ_JOGADOR_O:
     IMPRIMIR MSG_VEZ_O
     
 LER_JOGADA:
-    ; recebe a jogada e atualiza tela
+    ; executa a jogada e redesenha a tela
     CALL POSICAO
     CALL IMPRIMIR_TAB
     
-    ; verifica vitoria a partir da 5a rodada
+    ; checa vitoria somente apos 4 jogadas minimas
     CMP DI, 4
     JLE PROXIMO_TURNO
     
-    CALL VERIFICA_VITORIA
-    CMP STATUS_VITORIA, 0
+    CALL VITORIA
+    CMP STATUS_VITORIA, 0 ; se status mudou alguem ganhou
     JNE FIM_DO_JOGO
     
 PROXIMO_TURNO:
     LOOP CICLO_JOGO
     
-    ; se terminou sem vitoria eh empate
+    ; se saiu do loop sem vitoria e empate
     IMPRIMIR MSG_EMPATE
 
 FIM_DO_JOGO:
@@ -195,11 +234,15 @@ FIM_DO_JOGO:
     RET
 LEITURA_2_JOG ENDP
 
+
+;entrada: input do jogador lido em LEITURA2JOG
+;saida: matriz TABULEIRO preenchido com o input do jogador 
+;o que faz: preenche o tabuleiro com as jogadas de X e O
 POSICAO PROC
     SALVA_TUDO
     
 INICIO_POSICAO:
-    ; pede e valida a linha
+    ; solicita e valida a linha
     IMPRIMIR MSG_LINHA
     MOV AH, 01h
     INT 21h
@@ -209,13 +252,13 @@ INICIO_POSICAO:
     CMP AL, '3'
     JA ERRO_ENTRADA
     
-    ; calcula indice da linha
+    ; converte caractere ascii para indice de linha
     SUB AL, '1'
     MOV BL, 3
     MUL BL
     MOV BX, AX
     
-    ; pede e valida a coluna
+    ; solicita e valida a coluna
     IMPRIMIR MSG_COLUNA
     MOV AH, 01h
     INT 21h
@@ -225,16 +268,16 @@ INICIO_POSICAO:
     CMP AL, '3'
     JA ERRO_ENTRADA
     
-    ; calcula indice da coluna
+    ; converte caractere ascii para indice de coluna
     SUB AL, '1'
     XOR AH, AH
     MOV SI, AX
 
-    ; verifica se posicao esta livre
+    ; verifica colisao na matriz
     CMP TABULEIRO[BX][SI], ' '
     JNE ERRO_OCUPADA
     
-    ; marca x ou o dependendo do turno
+    ; define o simbolo com base no turno atual
     TEST DI, 1
     JZ MARCA_O
     
@@ -259,10 +302,13 @@ FIM_POSICAO:
     RET
 POSICAO ENDP
 
+;entrada variaveis globais
+;saida controle do jogo contra cpu
+;o que faz alterna entre jogador e computador
 LEITURA_MAQUINA PROC
     SALVA_TUDO
     
-    ; limpa o tabuleiro
+    ; rotina de limpeza do tabuleiro
     MOV CX, 3
     XOR BX, BX
 INIC_LINHA_M:
@@ -280,13 +326,14 @@ INIC_COLUNA_M:
     
     CALL IMPRIMIR_TAB
     
+    ; loop principal do modo vs cpu
     MOV CX, 9
     XOR DI, DI
     
 CICLO_MAQUINA:
     INC DI
     TEST DI, 1
-    JZ VEZ_MAQUINA
+    JZ VEZ_MAQUINA ; turnos pares sao da cpu
     
 VEZ_HUMANO_X:
     IMPRIMIR MSG_VEZ_X
@@ -302,7 +349,7 @@ ACAO_JOGO:
     CMP DI, 4
     JLE PROXIMO_TURNO_M
     
-    CALL VERIFICA_VITORIA
+    CALL VITORIA
     CMP STATUS_VITORIA, 0
     JNE FIM_JOGO_MAQUINA
     
@@ -315,15 +362,19 @@ FIM_JOGO_MAQUINA:
     RET
 LEITURA_MAQUINA ENDP
 
+
+;entrada: input do jogador humano ou geração aleatória da CPU
+;saida: matriz TABULEIRO preenchido com X usuario ou O CPU
+;o que faz: preenche o tabuleiro com jogadas do usuario ou posições geradas pela CPU
 POSICAO_MAQUINA PROC
     SALVA_TUDO
     
-    ; verifica se e vez da maquina ou humano
+    ; decide se a jogada e manual ou automatica
     TEST DI, 1
     JZ GERA_JOGADA_MAQUINA
     
 ENTRADA_JOGADOR:
-    ; leitura linha usuario
+    ; bloco de leitura manual igual ao jogo pvp
     IMPRIMIR MSG_LINHA
     MOV AH, 01h
     INT 21h
@@ -338,7 +389,6 @@ ENTRADA_JOGADOR:
     MUL BL
     MOV BX, AX
 
-    ; leitura coluna usuario
     IMPRIMIR MSG_COLUNA
     MOV AH, 01h
     INT 21h
@@ -354,7 +404,7 @@ ENTRADA_JOGADOR:
     JMP VERIFICA_POSICAO
 
 GERA_JOGADA_MAQUINA:
-    ; gera linha aleatoria
+    ; gera linha usando algoritmo linear congruente
     MOV AX, RANDOMIZADOR
     MOV DX, 25173
     MUL DX
@@ -363,14 +413,14 @@ GERA_JOGADA_MAQUINA:
 
     XOR DX, DX
     MOV BX, 3
-    DIV BX
+    DIV BX          ; resto da divisao em dx define a linha
                     
     MOV AL, DL
     MOV BL, 3
     MUL BL
-    MOV BX, AX
+    MOV BX, AX      ; linha calculada
 
-    ; gera coluna aleatoria
+    ; gera coluna usando constantes diferentes
     MOV AX, RANDOMIZADOR
     MOV DX, 8121
     MUL DX
@@ -380,10 +430,10 @@ GERA_JOGADA_MAQUINA:
     XOR DX, DX
     MOV CX, 3
     DIV CX
-    MOV SI, DX
+    MOV SI, DX      ; coluna calculada
 
 VERIFICA_POSICAO:
-    ; verifica disponibilidade
+    ; verifica se esta vazio
     CMP TABULEIRO[BX][SI], ' '
     JNE POSICAO_OCUPADA
     
@@ -403,7 +453,7 @@ ERRO_JOGADOR:
     JMP ENTRADA_JOGADOR
     
 POSICAO_OCUPADA:
-    ; se ocupado maquina tenta de novo
+    ; colisao da cpu gera nova tentativa silenciosa
     TEST DI, 1
     JZ GERA_JOGADA_MAQUINA
     IMPRIMIR MSG_OCUPADA
@@ -414,10 +464,14 @@ SAI_POSICAO_PC:
     RET
 POSICAO_MAQUINA ENDP
 
-VERIFICA_VITORIA PROC
+
+;entrada: Matriz tabuleiro com as posições jogadas preenchidas pelo procedimento anterior
+;saida: winflag, o qual diz se alguem ganhou nessa rodada ou não
+;o que faz: printa o quem ganhou essa rodada e retorna pro main 
+VITORIA PROC
     SALVA_TUDO
     
-    ; verifica linhas para jogador x
+    ; verifica as 3 linhas para o jogador X
     XOR BX, BX
     MOV CH, 3
 LINHA_X:
@@ -427,19 +481,19 @@ LINHA_X:
 CONTA_X:
     CMP TABULEIRO[BX][SI], 'X'
     JNE PROXIMA_LINHA_X
-    INC STATUS_VITORIA
+    INC STATUS_VITORIA ; conta acerto
     INC SI
     DEC CL
     JNZ CONTA_X
-    CMP STATUS_VITORIA, 3
+    CMP STATUS_VITORIA, 3 ; se 3 acertos venceu
     JNE PROXIMA_LINHA_X
     JMP VITORIA_X
 PROXIMA_LINHA_X:
-    ADD BX, 3
+    ADD BX, 3       ; vai para proxima linha
     DEC CH
     JNZ LINHA_X
     
-    ; verifica linhas para jogador o
+    ; verifica as 3 linhas para o jogador O
     XOR BX, BX
     MOV CH, 3
 LINHA_O:
@@ -461,29 +515,29 @@ PROXIMA_LINHA_O:
     DEC CH
     JNZ LINHA_O
     
-    ; verifica colunas para jogador x
-    XOR SI, SI
+    ; verifica as 3 colunas para o jogador X
+    XOR SI, SI      ; comeca na coluna 0
     MOV CH, 3
 COLUNA_X:
     MOV STATUS_VITORIA, 0
-    XOR BX, BX
+    XOR BX, BX      ; comeca na linha 0
     MOV CL, 3
 CONTA_COLUNA_X:
     CMP TABULEIRO[BX][SI], 'X'
     JNE PROXIMA_COLUNA_X
     INC STATUS_VITORIA
-    ADD BX, 3
+    ADD BX, 3       ; desce na matriz
     DEC CL
     JNZ CONTA_COLUNA_X
     CMP STATUS_VITORIA, 3
     JNE PROXIMA_COLUNA_X
     JMP VITORIA_X
 PROXIMA_COLUNA_X:
-    INC SI
+    INC SI          ; avanca coluna
     DEC CH
     JNZ COLUNA_X
     
-    ; verifica colunas para jogador o
+    ; verifica as 3 colunas para o jogador O
     XOR SI, SI
     MOV CH, 3
 COLUNA_O:
@@ -505,7 +559,7 @@ PROXIMA_COLUNA_O:
     DEC CH
     JNZ COLUNA_O
     
-    ; verifica diagonal principal x
+    ; verifica diagonal principal X
     MOV STATUS_VITORIA, 0
     XOR BX, BX
     XOR SI, SI
@@ -514,7 +568,7 @@ DIAGONAL1_X:
     CMP TABULEIRO[BX][SI], 'X'
     JNE TENTA_DIAGONAL1_O
     INC STATUS_VITORIA
-    ADD BX, 3
+    ADD BX, 3       ; desce e avanca
     INC SI
     DEC CX
     JNZ DIAGONAL1_X
@@ -523,10 +577,10 @@ DIAGONAL1_X:
     JMP VITORIA_X
     
 TENTA_DIAGONAL1_O:
-    ; verifica diagonal principal o
+    ; verifica diagonal principal O
     MOV STATUS_VITORIA, 0
     XOR BX, BX
-    XOR SI, SI
+    XOR SI, SI ;zera si e bx
     MOV CX, 3
 DIAGONAL1_O:
     CMP TABULEIRO[BX][SI], 'O'
@@ -541,17 +595,17 @@ DIAGONAL1_O:
     JMP VITORIA_O
     
 TENTA_DIAGONAL2_X:
-    ; verifica diagonal secundaria x
+    ; verifica diagonal secundaria X
     MOV STATUS_VITORIA, 0
     XOR BX, BX
-    MOV SI, 2
+    MOV SI, 2       ; comeca na direita
     MOV CX, 3
 DIAGONAL2_X:
     CMP TABULEIRO[BX][SI], 'X'
     JNE TENTA_DIAGONAL2_O
     INC STATUS_VITORIA
     ADD BX, 3
-    DEC SI
+    DEC SI          ; desce e recua
     DEC CX
     JNZ DIAGONAL2_X
     CMP STATUS_VITORIA, 3
@@ -559,7 +613,7 @@ DIAGONAL2_X:
     JMP VITORIA_X
     
 TENTA_DIAGONAL2_O:
-    ; verifica diagonal secundaria o
+    ; verifica diagonal secundaria O
     MOV STATUS_VITORIA, 0
     XOR BX, BX
     MOV SI, 2
@@ -592,45 +646,48 @@ VITORIA_O:
 SAI_VERIFICA:
     RECUPERA_TUDO
     RET
-VERIFICA_VITORIA ENDP
+VITORIA ENDP
 
+;entrada matriz tabuleiro
+;saida desenho do tabuleiro na tela
+;o que faz imprime a grade do jogo
 IMPRIMIR_TAB PROC
     SALVA_TUDO
     
     IMPRIMIR PULA_LINHA
     IMPRIMIR MSG_TAB
     
-    XOR BX, BX
+    XOR BX, BX      ; zera base da linha
     XOR CX, CX
-    MOV CH, 3
+    MOV CH, 3       ; loop das linhas
     
 IMPRIME_GERAL:
-    ; imprime espaco lateral
+    ; desenha espaco lateral
     MOV DL, ' '
     MOV AH, 02h
     INT 21h
     
     IMPRIMIR PULA_LINHA
     
-    MOV CL, 3
+    MOV CL, 3       ; loop das colunas
     XOR SI, SI
     
 IMPRIME_LINHA:
-    ; imprime o x ou o ou espaco
+    ; imprime conteudo da celula
     MOV DL, TABULEIRO[BX][SI]
     MOV AH, 02h
     INT 21h
     
     IMPRIMIR SEP_COLUNA
     
-    INC SI
+    INC SI          ; avanca indice coluna
     DEC CL
     JNZ IMPRIME_LINHA
     
     IMPRIMIR PULA_LINHA
     IMPRIMIR SEP_LINHA
     
-    ADD BX, 3
+    ADD BX, 3       ; avanca base da matriz
     DEC CH
     JNZ IMPRIME_GERAL
     
