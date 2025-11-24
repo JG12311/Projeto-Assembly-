@@ -1,54 +1,82 @@
-# Jogo da Velha em Assembly 8086
+# ⭕ Jogo da Velha (Tic-Tac-Toe) em Assembly 8086 ❌
 
-Este é um projeto acadêmico simples, escrito em Assembly 8086, para a disciplina de Sistemas de Computação. O objetivo é demonstrar a manipulação de matrizes, entrada e saída de dados (I/O) no console usando interrupções do DOS.
+Projeto desenvolvido para a disciplina de **Sistemas de Computação** no curso de **Engenharia de Computação (PUC-Campinas)**.
 
-## 👾 Funcionalidades Atuais
+O objetivo deste projeto é demonstrar domínio sobre a arquitetura 8086, manipulação direta de memória, lógica booleana, uso de pilhas, macros e interrupções do DOS.
 
-No estado atual, o programa não implementa a lógica completa do jogo (como verificação de vencedor ou alternância de jogadores). Ele foca nas seguintes rotinas:
+## 🚀 Funcionalidades Implementadas
 
-1.  **Leitura de Entradas:** Solicita ao usuário que digite 9 caracteres, um para cada posição do tabuleiro.
-2.  **Armazenamento em Matriz:** Guarda os 9 caracteres em uma matriz 3x3 na memória.
-3.  **Exibição Formatada:** Imprime o tabuleiro no console com divisórias (`|`) e (`---`), simulando a grade de um Jogo da Velha.
+Diferente de versões básicas que apenas imprimem caracteres, este projeto é um jogo funcional completo:
 
-## 🛠️ Como Compilar e Executar
+* **Menu Interativo:** Seleção de modos de jogo e opção de saída.
+* **Dois Modos de Jogo:**
+    1.  **PvP:** Jogador contra Jogador (local).
+    2.  **PvE:** Jogador contra Computador (CPU).
+* **Inteligência Artificial (CPU):**
+    * Utiliza um algoritmo **Linear Congruential Generator (LCG)** para gerar jogadas pseudo-aleatórias.
+    * A CPU valida automaticamente se a posição gerada está livre antes de jogar.
+* **Sistema de Coordenadas:** Entrada de dados intuitiva solicitando Linha (1-3) e Coluna (1-3).
+* **Validações Robustas:**
+    * Impede jogadas em posições já ocupadas.
+    * Impede entrada de caracteres inválidos (fora do intervalo 1-3).
+* **Verificação de Vitória:** Algoritmo de força bruta que checa as 8 possibilidades de vitória (3 linhas, 3 colunas, 2 diagonais) a cada turno.
+* **Loop de Jogo:** Permite reiniciar a partida sem fechar o programa.
 
-Para rodar este projeto, você precisará de um ambiente que possa executar programas DOS de 16 bits.
+## 🛠️ Tecnologias e Conceitos
 
-### Pré-requisitos
+* **Linguagem:** Assembly 8086 (Intel 16-bit).
+* **Montador:** Compatível com TASM (Turbo Assembler) e MASM.
+* **Conceitos de Baixo Nível:**
+    * **Macros:** Para padronização de I/O (`IMPRIMIR`) e preservação de contexto (`SALVA_TUDO`, `RECUPERA_TUDO`).
+    * **Aritmética de Ponteiros:** Mapeamento de uma matriz lógica 3x3 em um vetor linear de 9 bytes (`Endereço = Linha*3 + Coluna`).
+    * **Manipulação de Bits:** Uso de instruções `TEST` e `XOR` para alternância eficiente de turnos.
+    * **Interrupções:** Uso intensivo da `INT 21h` para controle de console.
 
-* **Emulador DOS:** [**DOSBox**](https://www.dosbox.com/) é a opção mais comum.
-* **Montador/Linkador:** **TASM** (Turbo Assembler) ou **MASM** (Microsoft Macro Assembler). Os comandos abaixo assumem que você está usando o TASM.
+## 📋 Como Compilar e Executar
 
-### Passos para Execução
+Você precisará de um emulador DOS (como **DOSBox**) e do **TASM**.
 
-1.  **Inicie o DOSBox** e monte o diretório onde estão seus arquivos `.asm` e o TASM. (Ex: `mount c C:\TASM`)
-2.  Navegue até o diretório do seu projeto.
-3.  **Monte o programa** (Compile) para criar o arquivo objeto (`.obj`):
+1.  **Monte o ambiente:**
+    Certifique-se de que o arquivo `.ASM` e o executável do TASM/TLINK estejam acessíveis no DOSBox.
+
+2.  **Compilação (Montagem):**
+    Gera o arquivo objeto (`.OBJ`).
     ```dos
     tasm jogo.asm
     ```
-    *(Substitua `jogo.asm` pelo nome do seu arquivo)*
 
-4.  **Linke o programa** para criar o arquivo executável (`.exe`):
+3.  **Linkedição:**
+    Gera o executável (`.EXE`).
     ```dos
     tlink jogo.obj
     ```
 
-5.  **Execute o programa:**
+4.  **Execução:**
     ```dos
     jogo.exe
     ```
 
+## 🎮 Como Jogar
+
+1.  No menu inicial, digite `1` para jogar contra um amigo ou `2` para desafiar a CPU.
+2.  O tabuleiro é organizado em linhas e colunas numeradas de 1 a 3.
+3.  Quando for sua vez, o jogo pedirá:
+    * **LINHA:** Digite `1` (topo), `2` (meio) ou `3` (baixo).
+    * **COLUNA:** Digite `1` (esquerda), `2` (centro) ou `3` (direita).
+4.  O jogo avisará se você tentar jogar em um lugar ocupado.
+5.  Vence quem alinhar 3 símbolos iguais. Se o tabuleiro encher, dá **EMPATE**.
+
 ## 📂 Estrutura do Código
 
-O código é dividido em três partes principais:
+* **Macros:** Definições reutilizáveis para `IMPRIMIR`, `FINALIZAR` e manipulação de pilha (`PUSH/POP`).
+* **MAIN:** Gerencia o menu principal e o loop de reinício.
+* **LEITURA_2_JOG / LEITURA_MAQUINA:** Controladores principais de fluxo para cada modo de jogo.
+* **POSICAO / POSICAO_MAQUINA:** Responsáveis pela lógica de entrada, validação de coordenadas e geração de números aleatórios (na CPU).
+* **VITORIA:** Varredura da matriz para detectar o fim do jogo.
+* **IMPRIMIR_TAB:** Renderização gráfica do tabuleiro usando caracteres ASCII.
 
-* `.DATA`: Define todas as variáveis, mensagens (prompts) e as strings de formatação do tabuleiro.
-* `LERMATRIZ PROC`: Rotina responsável por pedir os 9 caracteres ao usuário e armazená-los sequencialmente na matriz `tabuleiro`.
-* `IMPRIMIRMATRIZ PROC`: Rotina que percorre a matriz `tabuleiro` e a imprime no console com a formatação de Jogo da Velha.
-* `MAIN PROC`: Ponto de entrada principal. Ele inicializa o segmento de dados (`DS`), chama `LERMATRIZ` e depois `IMPRIMIRMATRIZ` antes de encerrar o programa.
-
-## 🚀 Próximos Passos (Possíveis Melhorias)
+---
+Desenvolvido por **João Gabriel Breganon Ferreira e Gabriel Frias**.
 
 * [ ] Implementar a lógica de turnos (Jogador 'X' e Jogador 'O').
 * [ ] Adicionar verificação para impedir que uma posição já ocupada seja sobrescrita.
